@@ -60,6 +60,13 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:4px soli
 .tonight .list{font-weight:400;font-size:1.02rem}
 .tonight .tag,.tonight .name,.tonight .list{grid-column:1}
 .tonight .go{grid-column:2;grid-row:1 / span 3;font-family:var(--show);font-weight:400;font-size:clamp(1.5rem,4vw,2rem);background:var(--paper);border:4px solid var(--ink);border-radius:16px;padding:10px 20px}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modebtn{display:flex;flex-direction:column;gap:2px;padding:10px 14px;border-radius:18px;background:var(--boarddark);color:var(--chalk);border-color:var(--chalkdim);box-shadow:none;font-weight:400;font-size:1rem}
+.modebtn b{font-family:var(--show);font-weight:400;font-size:clamp(1.2rem,3.6vw,1.6rem);line-height:1.1}
+.modebtn[aria-pressed="true"]{background:var(--sun);color:var(--ink);border-color:var(--ink);box-shadow:0 6px 0 var(--ink)}
+.modebtn:active:not(:disabled){transform:none;box-shadow:none}
+.modebtn[aria-pressed="true"]:active:not(:disabled){box-shadow:0 6px 0 var(--ink)}
+.homemsg{background:var(--oops);color:var(--ink);border:4px solid var(--ink);border-radius:16px;padding:10px 14px;font-weight:700}
 .bookbar{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;font-size:1.1rem;flex-wrap:wrap}
 .bookbar .row{font-size:1.5rem;letter-spacing:.06em;white-space:nowrap;overflow:hidden;min-width:0;flex:1 1 90px;text-align:right}
 .bookbar small{display:block;font-weight:400;font-size:1rem}
@@ -96,6 +103,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:4px soli
 .say.ok{background:var(--goodsoft)}.say.no{background:var(--oops)}
 .say strong{display:block;font-family:var(--show);font-weight:400;font-size:1.45rem;line-height:1.15;margin-bottom:2px}
 .blank{display:inline-block;width:3.6em;border-bottom:4px solid var(--ink)}
+.cluetext .blank{border-bottom-color:var(--chalk);width:4.4em}
+.cluetext mark{font-weight:700;display:inline-block;line-height:1.08;border-radius:8px;padding:0 6px}
 mark{background:var(--sun);color:var(--ink);font-weight:700;border-radius:6px;padding:0 4px}
 .note .chunk.primary{flex:none}
 .note .solo{margin-right:auto}
@@ -236,6 +245,11 @@ const WORD_LISTS = [
 /* Words whose meanings are too close to be fair wrong answers for each other. */
 const TOO_CLOSE = [["enjoy","admire"],["depend","rely"],["relationship","connections"],["physical","exercise"],["community","city"],["equipment","materials"]];
 
+/* Sentence Puzzle: wrong answers that would also make sense in this word's sentence, so they are never offered.
+   Checked by hand for all 45 sentences. Choices come from the word's own week. */
+const ALSO_FITS = {learn:["recognize"],city:["country"],deliver:["collect"],collect:["deliver"],physical:["difficult","exercise"],exhausted:["difficult"],difficult:["exhausted"],community:["equipment"],equipment:["occupation"],materials:["shelter"],collapsed:["refused"],furious:["collapsed"],admire:["enjoy"],enjoy:["admire"],leadership:["connections"]};
+const SENTENCE_EXTRA = {physical:["hibernate"]}; // this week has too few fair wrong answers left
+
 const PLAYER = "";
 const PASS_MARK = 0.8;   // 4 out of 5 on the first try wins the secret word
 const MIX_SIZE = 10;
@@ -246,12 +260,13 @@ const CHEERS = ["You got it!","Yes!","Great job"+(PLAYER?", "+PLAYER:"")+"!","Th
 
 /* ---------- saved things (safe if the browser blocks storage) ---------- */
 const KEY = "secret-word-v1";
-let store = {prizes:{},best:{},known:{},sound:true,custom:[]};
+let store = {prizes:{},best:{},known:{},sound:true,custom:[],mode:"meaning"};
 try{
   const s = JSON.parse(localStorage.getItem(KEY)||"null");
   if(s && typeof s==="object"){
     ["prizes","best","known"].forEach(k=>{ if(s[k] && typeof s[k]==="object") store[k]=s[k]; });
     if(typeof s.sound==="boolean") store.sound = s.sound;
+    if(s.mode==="sentence") store.mode = s.mode;
     if(Array.isArray(s.custom)) store.custom = s.custom.filter(l=>l && Array.isArray(l.words) && l.title);
   }
 }catch(e){}
@@ -271,6 +286,9 @@ function starsFor(right,n){ if(!n) return 0; if(right===n) return 3; if(right>=n
 const starHTML = n => '<span class="stars" aria-label="'+n+' of 3 stars">'+"★".repeat(n)+'<i>'+"★".repeat(3-n)+'</i></span>';
 const wordRe = w => new RegExp("\\b"+w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","i");
 const hasSentence = q => q.sentence && wordRe(q.word).test(q.sentence);
+const wordFits = w => !!w[2] && wordRe(w[0]).test(w[2]);
+const bestKey = id => store.mode==="sentence" ? id+":s" : id;
+const speakBlank = q => q.sentence.replace(wordRe(q.word),"blank");
 const blanked = q => esc(q.sentence.replace(wordRe(q.word),"\u0000")).replace("\u0000",'<span class="blank"></span>');
 const marked = q => esc(q.sentence.replace(wordRe(q.word),"\u0000")).replace("\u0000",'<mark>'+esc((q.sentence.match(wordRe(q.word))||[q.word])[0])+'</mark>');
 const titleTiles = w => '<span class="tiles" aria-hidden="true">'+[...w].map((l,i)=>`<span class="tile c${i%6}">${l}</span>`).join("")+'</span>';
@@ -328,13 +346,19 @@ const homeBtn = () => `<button class="chunk icon" data-act="home" aria-label="Go
 /* ---------- home ---------- */
 function showHome(){
   round=null; if(synth) synth.cancel();
+  const note=homeMsg; homeMsg="";
   const week = WORD_LISTS.find(l=>l.thisWeek) || WORD_LISTS[WORD_LISTS.length-1];
   const groups = {};
   WORD_LISTS.forEach(l=>{(groups[l.unit]=groups[l.unit]||[]).push(l);});
   const won = PRIZES.filter(p=>store.prizes[p[0]]);
-  const card = l => `<button class="chunk week" data-act="start" data-id="${esc(l.id)}">${l.week?`<b>${esc(l.week)}</b>`:""}<span class="t">${esc(l.title)}</span>${starHTML(store.best[l.id]||0)}</button>`;
+  const card = l => `<button class="chunk week" data-act="start" data-id="${esc(l.id)}">${l.week?`<b>${esc(l.week)}</b>`:""}<span class="t">${esc(l.title)}</span>${starHTML(store.best[bestKey(l.id)]||0)}</button>`;
   app.innerHTML = `<main class="screen">
     <header class="hero">${PLAYER?`<div class="owner">${esc(PLAYER)}'s</div>`:""}<h1 class="brand" aria-label="Secret Word">${titleTiles("SECRET")}${titleTiles("WORD")}</h1><p>Read the clue. Pick the word. Find the secret word and win it!</p></header>
+    <div class="modes" role="group" aria-label="Choose a puzzle">
+      <button class="chunk modebtn" data-act="mode" data-mode="meaning" aria-pressed="${store.mode==="meaning"}"><b>Word Meanings</b>Which word means this?</button>
+      <button class="chunk modebtn" data-act="mode" data-mode="sentence" aria-pressed="${store.mode==="sentence"}"><b>Sentence Puzzle</b>Which word fits?</button>
+    </div>
+    ${note?`<p class="homemsg">${esc(note)}</p>`:""}
     <button class="chunk tonight" data-act="start" data-id="${esc(week.id)}">
       <span class="tag">This week's words</span><span class="name">${esc(week.title)}</span>
       <span class="list">${week.words.map(w=>esc(w[0])).join(", ")}</span><span class="go">Play!</span>
@@ -342,20 +366,24 @@ function showHome(){
     <button class="chunk bookbar" data-act="book"><span>My Word Book<small>${won.length} of ${PRIZES.length} secret words won</small></span><span class="row">${won.slice(-6).map(p=>p[1]).join("")}</span></button>
     ${Object.keys(groups).map(u=>`<section class="unit"><h2>${esc(u)}</h2><div class="weeks">${groups[u].map(card).join("")}</div></section>`).join("")}
     ${store.custom.length?`<section class="unit"><h2>Added words</h2><div class="weeks">${store.custom.map(card).join("")}</div></section>`:""}
-    <section class="unit"><h2>All the words</h2><div class="weeks"><button class="chunk week" data-act="start" data-id="mix"><b>${MIX_SIZE} surprise words</b><span class="t">Mix them up</span>${starHTML(store.best.mix||0)}</button></div></section>
+    <section class="unit"><h2>All the words</h2><div class="weeks"><button class="chunk week" data-act="start" data-id="mix"><b>${MIX_SIZE} surprise words</b><span class="t">Mix them up</span>${starHTML(store.best[bestKey("mix")]||0)}</button></div></section>
     <footer class="foot"><button class="linkish" data-act="grownups">Grown-ups: add more words</button></footer>
   </main>`;
   window.scrollTo(0,0);
 }
 
 /* ---------- playing a round ---------- */
-let round=null;
-function makeChoices(word,pool){
-  const key=word[0].toLowerCase();
-  const usable = w => w[0].toLowerCase()!==key && !tooClose(w[0].toLowerCase(),key);
+let round=null, homeMsg="";
+const ownWords = w => (lists().find(l=>l.words.includes(w))||{words:[]}).words;
+function makeChoices(word,pool,mode){
+  const key=word[0].toLowerCase(), sentence=mode==="sentence";
+  const fitsToo = k => sentence && (ALSO_FITS[key]||[]).includes(k);
+  const usable = w => w[0].toLowerCase()!==key && !tooClose(w[0].toLowerCase(),key) && !fitsToo(w[0].toLowerCase());
   const picks=[]; const seen=new Set([key]);
   const take = from => shuffle(from).forEach(w=>{const k=w[0].toLowerCase(); if(picks.length<3 && usable(w) && !seen.has(k)){seen.add(k);picks.push(w[0]);}});
-  take(pool); take(allWords());
+  if(sentence){ take(ownWords(word)); take((SENTENCE_EXTRA[key]||[]).map(x=>[x])); }
+  else take(pool);
+  take(allWords());
   return shuffle(picks.concat(word[0]));
 }
 function newSecret(){
@@ -364,10 +392,12 @@ function newSecret(){
 }
 function startRound(id,keepSecret){
   let list,words,pool;
-  if(id==="mix"){ pool=allWords(); words=shuffle(pool).slice(0,MIX_SIZE); list={id:"mix",title:"Mix them up"}; }
-  else{ list=findList(id); if(!list) return showHome(); pool=list.words; words=shuffle(pool); }
-  round={list,i:0,right:0,secret:keepSecret||newSecret(),shown:new Set(),done:false,
-    qs:words.map(w=>({word:w[0],meaning:w[1],sentence:w[2]||"",choices:makeChoices(w,pool),missed:false}))};
+  const mode=store.mode, ok = w => mode!=="sentence" || wordFits(w);
+  if(id==="mix"){ pool=allWords(); words=shuffle(pool.filter(ok)).slice(0,MIX_SIZE); list={id:"mix",title:"Mix them up"}; }
+  else{ list=findList(id); if(!list) return showHome(); pool=list.words; words=shuffle(pool.filter(ok)); }
+  if(!words.length){ homeMsg="This list has no example sentences yet, so play it in Word Meanings."; return showHome(); }
+  round={list,mode,i:0,right:0,secret:keepSecret||newSecret(),shown:new Set(),done:false,
+    qs:words.map(w=>({word:w[0],meaning:w[1],sentence:w[2]||"",choices:makeChoices(w,pool,mode),missed:false}))};
   showQuestion();
 }
 /* Each right answer turns over more letters. The last letter stays hidden until she wins. */
@@ -380,25 +410,26 @@ function revealLetters(){
   fresh.forEach(i=>{ const t=box.children[i]; t.className="tile on c"+(i%6); t.textContent=word[i]; });
 }
 function showQuestion(){
-  const q=round.qs[round.i]; round.done=false;
+  const q=round.qs[round.i], isS=round.mode==="sentence"; round.done=false;
   app.innerHTML = `<main class="screen">
     <div class="topbar">${homeBtn()}<div class="count">Word ${round.i+1} of ${round.qs.length}</div>${soundBtn()}</div>
     <div class="secret"><span class="lab">Secret word</span>${secretHTML(round.secret[0],round.shown)}</div>
     <section class="clue">
-      <div class="cluetop"><span class="ask">Which word means...</span><button class="chunk small" data-act="read" ${synth?"":"hidden"}>🔊 Read it to me</button></div>
-      <p class="cluetext">${esc(q.meaning)}</p>
+      <div class="cluetop"><span class="ask">${isS?"Which word fits in the sentence?":"Which word means..."}</span><button class="chunk small" data-act="read" ${synth?"":"hidden"}>🔊 Read it to me</button></div>
+      <p class="cluetext">${isS?blanked(q):esc(q.meaning)}</p>
     </section>
     <div class="answers">${q.choices.map((c,i)=>`<button class="chunk answer" data-act="pick" data-i="${i}">${esc(c)}</button>`).join("")}</div>
     <div class="note" id="note"><button class="chunk small solo" data-act="hint">💡 Give me a hint</button></div>
   </main>`;
   window.scrollTo(0,0);
-  say("Which word means: "+q.meaning+"?");
+  say(isS?"Which word fits? "+speakBlank(q):"Which word means: "+q.meaning+"?");
 }
 function hintHTML(q,lead){
+  if(round.mode==="sentence") return `<div class="say no"><strong>${esc(lead)}</strong>The word means: ${esc(q.meaning)}</div>`;
   const body = hasSentence(q) ? blanked(q) : 'It starts with the letter <mark>'+esc(q.word[0].toUpperCase())+'</mark>.';
   return `<div class="say no"><strong>${esc(lead)}</strong>${body}</div>`;
 }
-function hintSpeech(q){ return hasSentence(q) ? q.sentence.replace(wordRe(q.word),"blank") : "It starts with the letter "+q.word[0]; }
+function hintSpeech(q){ if(round.mode==="sentence") return "The word means: "+q.meaning; return hasSentence(q) ? q.sentence.replace(wordRe(q.word),"blank") : "It starts with the letter "+q.word[0]; }
 function pick(i){
   const q=round.qs[round.i]; if(round.done) return;
   const btns=[...app.querySelectorAll(".answer")], btn=btns[i], chosen=q.choices[i];
@@ -410,10 +441,11 @@ function pick(i){
     btns.forEach(b=>{b.disabled=true; if(b!==btn) b.classList.add("faded");});
     btn.classList.add("right"); sfx.right();
     const cheer = q.missed ? "There it is!" : one(CHEERS);
-    const last = round.i===round.qs.length-1;
-    note.innerHTML = `<div class="say ok"><strong>${esc(cheer)}</strong>${q.sentence?marked(q):esc(q.word)+" means "+esc(q.meaning)}</div><button class="chunk primary" data-act="next" id="next">${last?"See my score":"Next word"}</button>`;
+    const last = round.i===round.qs.length-1, isS=round.mode==="sentence";
+    if(isS) app.querySelector(".cluetext").innerHTML=marked(q);
+    note.innerHTML = `<div class="say ok"><strong>${esc(cheer)}</strong>${isS?"<b>"+esc(q.word)+"</b> means: "+esc(q.meaning):q.sentence?marked(q):esc(q.word)+" means "+esc(q.meaning)}</div><button class="chunk primary" data-act="next" id="next">${last?"See my score":"Next word"}</button>`;
     document.getElementById("next").focus({preventScroll:true});
-    say([cheer, q.word+". "+(q.sentence||"")]);
+    say([cheer, isS?q.sentence:q.word+". "+(q.sentence||"")]);
     note.scrollIntoView({block:"nearest",behavior:"smooth"});
   }else{
     q.missed=true;
@@ -429,7 +461,8 @@ function next(){
 }
 function readAloud(){
   const q=round.qs[round.i]; const btns=[...app.querySelectorAll(".answer")];
-  const parts=[{text:"Which word means: "+q.meaning+"?"}];
+  const isS=round.mode==="sentence";
+  const parts=[{text:isS?(round.done?q.sentence:"Which word fits? "+speakBlank(q)):"Which word means: "+q.meaning+"?"}];
   if(!round.done) q.choices.forEach((c,i)=>{ if(!btns[i].disabled) parts.push({text:c,start(){clearReading();btns[i].classList.add("reading");},end(){btns[i].classList.remove("reading");}}); });
   say(parts);
 }
@@ -439,7 +472,7 @@ function showResult(){
   const n=round.qs.length, right=round.right, need=needed(n), stars=starsFor(right,n), id=round.list.id;
   const won=right>=need, perfect=right===n, missed=round.qs.filter(q=>q.missed);
   round.won=won; round.revealed=false;
-  store.best[id]=Math.max(store.best[id]||0,stars);
+  store.best[bestKey(id)]=Math.max(store.best[bestKey(id)]||0,stars);
   if(won){
     const k=round.secret[0], had=store.prizes[k]||{n:0,gold:false};
     store.prizes[k]={n:had.n+1,gold:had.gold||perfect};
@@ -545,7 +578,7 @@ function showGrownups(message){
       <div><label for="listname">Name of this list</label><input id="listname" autocomplete="off" placeholder="Unit 3, Week 1"></div>
       <div><label for="wordlines">Words, one on each line</label>
         <textarea id="wordlines" autocapitalize="off" autocorrect="off" placeholder="brave - not afraid to do something hard - The brave firefighter saved the cat.&#10;gentle - kind and careful - Be gentle with the puppy."></textarea>
-        <small>Write the word, a dash, and what it means. A second dash and an example sentence are optional. The sentence is used for hints.</small></div>
+        <small>Write the word, a dash, and what it means. Add a second dash and an example sentence to use the word in the Sentence Puzzle. Use the exact word in the sentence.</small></div>
       <p id="formmsg" class="${message?"okmsg":""}">${message?esc(message):""}</p>
       <div class="actions" style="justify-content:flex-start"><button class="chunk primary" type="submit">Save words</button></div>
       <small>Words added here stay on this device and this browser only.</small>
@@ -585,13 +618,14 @@ const ACTIONS = {
   home:()=>showHome(),
   book:()=>showBook(),
   grownups:()=>showGrownups(),
+  mode(d){ store.mode=d.mode==="sentence"?"sentence":"meaning"; save(); showHome(); },
   hear(d){ const w=allWords().find(x=>x[0]===d.w); if(w) say(w[0]+". "+w[1]); },
   sound(d,b){
     store.sound=!store.sound; save();
     b.textContent=store.sound?"🔊":"🔇"; b.setAttribute("aria-label",store.sound?"Turn sound off":"Turn sound on");
     if(store.sound) sfx.tap(); else if(synth) synth.cancel();
   },
-  removelist(d,b){ twoTap(b,"Tap again to remove",()=>{ store.custom=store.custom.filter(l=>l.id!==d.id); delete store.best[d.id]; save(); showGrownups("List removed."); }); },
+  removelist(d,b){ twoTap(b,"Tap again to remove",()=>{ store.custom=store.custom.filter(l=>l.id!==d.id); delete store.best[d.id]; delete store.best[d.id+":s"]; save(); showGrownups("List removed."); }); },
   resetbook(d,b){ twoTap(b,"Tap again to empty",()=>{ store.prizes={}; store.best={}; store.known={}; save(); showGrownups("The Word Book is empty and the stars are cleared."); }); },
 };
 document.addEventListener("click",e=>{
