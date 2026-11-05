@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Secret Word</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Lilita+One&display=swap">
+<style>
+/* Layout: a classroom chalkboard with colorful magnet letters. The clue is written in chalk, the answers are big word cards,
+   and a row of hidden letter tiles spells the secret prize word. Andika is a typeface made for beginning readers. */
+:root{
+  --board:#1E5244; --boarddark:#163C32; --chalk:#FFFBEF; --chalkdim:#CFE3D8; --ink:#22202E; --paper:#FFFDF6; --muted:#5C5A6E;
+  --pink:#FF9AD0; --aqua:#6FE0EA; --lime:#C3EE62; --lilac:#C9AEFF; --peach:#FFB877; --sun:#FFD84D;
+  --good:#2FBF71; --goodsoft:#D9F7E6; --oops:#FFE3D6; --gold:#FFC21A; --spent:#DAD8E2;
+  --read:"Andika","Chalkboard SE","Comic Sans MS",ui-rounded,sans-serif;
+  --show:"Lilita One","Chalkboard SE","Marker Felt","Comic Sans MS",ui-rounded,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background-color:var(--board);background-image:radial-gradient(ellipse at 20% 10%,rgba(255,255,255,.07),transparent 55%),radial-gradient(ellipse at 85% 80%,rgba(255,255,255,.05),transparent 50%);background-attachment:fixed;color:var(--chalk);font-family:var(--read);font-size:18px;line-height:1.35;-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-text-size-adjust:100%}
+input,textarea{-webkit-user-select:text;user-select:text}
+#app{min-height:100%;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 24px}
+.screen{max-width:920px;margin:0 auto;display:flex;flex-direction:column;gap:clamp(12px,2.2vh,20px)}
+h1,h2,h3,p{margin:0}
+h2,h3{font-family:var(--show);font-weight:400;line-height:1.1;text-wrap:balance}
+button{font:inherit;color:var(--ink);cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:4px solid var(--sun);outline-offset:3px}
+
+.chunk{background:var(--paper);color:var(--ink);border:4px solid var(--ink);border-radius:18px;box-shadow:0 6px 0 var(--ink);padding:12px 18px;transition:transform .08s,box-shadow .08s;text-align:center;font-weight:700}
+.chunk:active:not(:disabled){transform:translateY(4px);box-shadow:0 2px 0 var(--ink)}
+.chunk.primary{background:var(--sun);font-family:var(--show);font-weight:400;font-size:1.45rem;padding:14px 26px}
+.chunk.small{padding:7px 14px;border-width:3px;border-radius:14px;box-shadow:0 4px 0 var(--ink);font-size:1rem}
+.chunk.small:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.icon{width:54px;height:54px;padding:0;font-size:1.5rem;display:grid;place-items:center;flex:none;border-width:3px;border-radius:14px;box-shadow:0 4px 0 var(--ink)}
+.icon:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.stars{color:var(--gold);letter-spacing:.06em;-webkit-text-stroke:1px var(--ink);white-space:nowrap}
+.stars i{font-style:normal;color:var(--spent)}
+
+/* Letter tiles */
+.tiles{display:flex;gap:clamp(3px,1vw,8px);justify-content:center;width:100%}
+.tile{flex:0 1 clamp(30px,8vw,54px);min-width:0;aspect-ratio:1;display:grid;place-items:center;font-family:var(--show);font-size:clamp(1.15rem,4.6vw,2.1rem);line-height:1;color:var(--ink);border:3px solid var(--ink);border-radius:clamp(8px,1.6vw,12px);box-shadow:0 4px 0 var(--ink)}
+.tile.hide{background:var(--boarddark);color:var(--chalkdim);border-color:var(--chalkdim);box-shadow:none;border-style:dashed}
+.tile.on{animation:flip .45s ease}
+@keyframes flip{0%{transform:rotateY(90deg) scale(1.1)}100%{transform:rotateY(0) scale(1)}}
+.c0{background:var(--pink)}.c1{background:var(--aqua)}.c2{background:var(--lime)}.c3{background:var(--lilac)}.c4{background:var(--peach)}.c5{background:var(--sun)}
+.big .tile{flex-basis:clamp(32px,9vw,70px);font-size:clamp(1.25rem,5.4vw,2.8rem);border-width:4px;box-shadow:0 5px 0 var(--ink)}
+
+/* Home */
+.hero{display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center;padding-top:6px}
+.owner{font-family:var(--show);font-size:clamp(1.4rem,4vw,2rem)}
+.brand{display:flex;flex-wrap:wrap;justify-content:center;gap:10px clamp(14px,4vw,28px);margin:0}
+.brand .tiles{width:auto}
+.brand .tile{flex:0 0 clamp(44px,9.5vw,70px);font-size:clamp(1.7rem,5.6vw,2.9rem);border-width:4px;box-shadow:0 6px 0 var(--ink)}
+.brand .tile:nth-child(odd){transform:rotate(-3deg)}.brand .tile:nth-child(even){transform:rotate(2.5deg)}
+.hero p{font-weight:700;font-size:clamp(1.05rem,2.6vw,1.35rem);margin-top:8px}
+.tonight{display:grid;grid-template-columns:1fr auto;gap:2px 16px;align-items:center;background:var(--pink);text-align:left;padding:16px 22px;border-radius:24px;width:100%}
+.tonight .tag{font-size:1rem}
+.tonight .name{font-family:var(--show);font-size:clamp(1.8rem,5vw,2.6rem);line-height:1.1;font-weight:400}
+.tonight .list{font-weight:400;font-size:1.02rem}
+.tonight .tag,.tonight .name,.tonight .list{grid-column:1}
+.tonight .go{grid-column:2;grid-row:1 / span 3;font-family:var(--show);font-weight:400;font-size:clamp(1.5rem,4vw,2rem);background:var(--paper);border:4px solid var(--ink);border-radius:16px;padding:10px 20px}
+.bookbar{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;font-size:1.1rem;flex-wrap:wrap}
+.bookbar .row{font-size:1.5rem;letter-spacing:.06em;white-space:nowrap;overflow:hidden;min-width:0;flex:1 1 90px;text-align:right}
+.bookbar small{display:block;font-weight:400;font-size:1rem}
+.unit h2{font-size:1.5rem;margin-bottom:8px}
+.weeks{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:12px}
+.week{display:flex;flex-direction:column;gap:2px;text-align:left;font-weight:400;padding:10px 14px;box-shadow:0 5px 0 var(--ink)}
+.week b{font-size:.95rem;color:var(--muted);font-weight:700}
+.week span.t{font-weight:700;font-size:1.15rem}
+.week .stars{min-height:1.4em}
+.foot{display:flex;justify-content:center;padding-top:6px}
+.linkish{background:none;border:0;text-decoration:underline;font-weight:700;padding:8px;color:var(--chalk)}
+
+/* Question */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.count{font-family:var(--show);font-size:clamp(1.2rem,3.4vw,1.6rem);text-align:center}
+.secret{display:flex;flex-direction:column;align-items:center;gap:6px}
+.secret .lab{font-weight:700;color:var(--chalkdim);font-size:1rem}
+.clue{border:3px dashed var(--chalkdim);border-radius:22px;padding:12px 20px 16px}
+.cluetop{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.ask{font-weight:700;color:var(--chalkdim);font-size:1.1rem}
+.cluetext{font-weight:700;font-size:clamp(1.6rem,4.2vw,2.5rem);line-height:1.2;text-wrap:balance}
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:clamp(10px,2vw,16px)}
+.answer{font-size:clamp(1.35rem,4vw,2.2rem);min-height:clamp(70px,12vh,108px);padding:8px;overflow-wrap:anywhere;border-radius:20px}
+.answer:nth-child(1){background:var(--aqua)}.answer:nth-child(2){background:var(--pink)}.answer:nth-child(3){background:var(--lime)}.answer:nth-child(4){background:var(--lilac)}
+.answer.reading{outline:5px solid var(--sun);outline-offset:3px}
+.answer.right{background:var(--good);animation:pop .4s ease}
+.answer.wrong{background:var(--spent);color:var(--muted);animation:shake .4s ease;text-decoration:line-through;box-shadow:0 2px 0 var(--ink);transform:translateY(4px)}
+.answer.faded{background:var(--spent);color:var(--muted);box-shadow:0 2px 0 var(--ink);transform:translateY(4px)}
+.answer:disabled{cursor:default}
+@keyframes pop{50%{transform:scale(1.06)}}
+@keyframes shake{20%{translate:-7px}40%{translate:7px}60%{translate:-4px}80%{translate:4px}}
+.note{min-height:92px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between}
+.say{flex:1 1 280px;min-width:0;font-size:1.2rem;background:var(--paper);color:var(--ink);border:4px solid var(--ink);border-radius:18px;padding:10px 16px}
+.say.ok{background:var(--goodsoft)}.say.no{background:var(--oops)}
+.say strong{display:block;font-family:var(--show);font-weight:400;font-size:1.45rem;line-height:1.15;margin-bottom:2px}
+.blank{display:inline-block;width:3.6em;border-bottom:4px solid var(--ink)}
+mark{background:var(--sun);color:var(--ink);font-weight:700;border-radius:6px;padding:0 4px}
+.note .chunk.primary{flex:none}
+.note .solo{margin-right:auto}
+
+/* Result */
+.result{align-items:center;text-align:center}
+.result .topbar{width:100%}
+.result h2{font-size:clamp(2.1rem,6.5vw,3.2rem)}
+.result .sub{font-weight:700;font-size:clamp(1.15rem,3vw,1.5rem);max-width:30em;text-wrap:balance}
+.bigstars{font-size:clamp(2.4rem,7vw,3.4rem);line-height:1}
+.sticker{display:inline-grid;place-items:center;width:clamp(120px,24vw,170px);aspect-ratio:1;border-radius:50%;background:var(--paper);border:5px solid var(--ink);box-shadow:0 7px 0 var(--ink);font-size:clamp(4rem,12vw,6rem);line-height:1;animation:stick .6s cubic-bezier(.3,1.6,.5,1)}
+.sticker.gold,.slot.gold .face{background:var(--gold)}
+@keyframes stick{from{transform:scale(.2) rotate(-25deg)}to{transform:scale(1) rotate(0)}}
+.actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.practice{width:100%;max-width:640px;background:var(--paper);color:var(--ink);border:4px solid var(--ink);border-radius:18px;padding:12px 18px;text-align:left}
+.practice h3{font-size:1.3rem;margin-bottom:6px}
+.practice p{padding:5px 0;border-top:2px dotted #CFC8DC}
+.practice p:first-of-type{border-top:0}
+.practice b{font-size:1.15rem}
+
+/* Word Book */
+.title h2{font-size:clamp(2rem,6vw,2.8rem)}
+.page{background:var(--paper);color:var(--ink);border:4px solid var(--ink);border-radius:20px;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px}
+.page h3{font-size:1.45rem}
+.page .help{font-size:1.05rem}
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:12px 8px}
+.slot{display:flex;flex-direction:column;align-items:center;gap:4px;font-weight:700;font-size:.95rem;text-align:center;min-width:0;overflow-wrap:anywhere}
+.slot .face{display:grid;place-items:center;width:68px;height:68px;border-radius:50%;background:#fff;border:3px solid var(--ink);font-size:2.3rem;line-height:1}
+.slot.empty .face{border-style:dashed;border-color:#A9A5BA;font-family:var(--show);font-size:1.5rem;color:#8D89A0;background:none}
+.slot.empty{color:#7B788C}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{background:var(--aqua);border:3px solid var(--ink);border-radius:12px;padding:5px 12px;font-weight:700}
+.chips button:nth-child(4n+2){background:var(--pink)}.chips button:nth-child(4n+3){background:var(--lime)}.chips button:nth-child(4n){background:var(--lilac)}
+
+/* Grown-ups */
+.panel{background:var(--paper);color:var(--ink);border:4px solid var(--ink);border-radius:20px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.panel h3{font-size:1.35rem}
+.panel label{font-weight:700;display:block;margin-bottom:4px}
+.panel input,.panel textarea{width:100%;font:inherit;font-size:1rem;padding:10px;border:3px solid var(--ink);border-radius:12px;background:#fff;color:var(--ink)}
+.panel textarea{min-height:150px;resize:vertical}
+.panel small{color:var(--muted);font-size:.95rem}
+.err{color:#A72B00;font-weight:700}
+.okmsg{color:#14703F;font-weight:700}
+.rowline{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0;border-top:2px dotted #CFC8DC}
+.rowline>span{min-width:0;flex:1 1 200px;overflow-wrap:anywhere}
+canvas.party{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}
+.fallback{max-width:560px;margin:40px auto;background:#FFFDF6;color:#22202E;border:4px solid #22202E;border-radius:20px;padding:20px;font-family:sans-serif;font-size:18px}
+
+@media (max-width:520px){
+  .tonight{grid-template-columns:1fr}
+  .tonight .go{grid-column:1;grid-row:auto;margin-top:8px;text-align:center}
+  .note{min-height:0}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+
+<noscript>
+  <div class="fallback"><b>The game can't start in this preview.</b><br>This screen only shows a picture of the page. Grown-ups: open the game from its web link in Safari or Chrome, or double-click the file on a computer.</div>
+</noscript>
+<div id="app"></div>
+
+<script>
+/* ==================================================================
+   THE WORDS. To add a new sheet, copy one block and change it.
+   Each word is:  ["word", "what it means", "example sentence"]
+   Put  thisWeek: true  on the list that should be the big pink button
+   on the home screen (and take it off the old one).
+   ================================================================== */
+const WORD_LISTS = [
+  { id:"u1w1", unit:"Unit 1: Getting to Know Us", title:"At School", week:"Week 1", words:[
+    ["learn","to find out something new or get a new skill","I learn new songs in music class."],
+    ["subjects","the things you study at school, like reading, math and science","Math is one of my favorite subjects."],
+    ["common","normal; something you see a lot","Dogs are a common pet."],
+    ["object","a thing or an item","A pencil is an object in my backpack."],
+    ["recognize","to know something because you have seen it before","I recognize my friend's red jacket."],
+  ]},
+  { id:"u1w2", unit:"Unit 1: Getting to Know Us", title:"Where I Live", week:"Week 2", words:[
+    ["city","a big town with tall buildings and lots of people","We rode a bus through the busy city."],
+    ["country","the land outside a town, with farms and not many people","Cows and horses live in the country."],
+    ["bored","feeling like there is nothing fun or interesting to do","I felt bored waiting in the long line."],
+    ["feast","a big, fancy meal with lots of different foods","We had a feast for Grandma's birthday."],
+    ["scurried","moved very fast with quick little steps","The mouse scurried under the couch."],
+  ]},
+  { id:"u1w3", unit:"Unit 1: Getting to Know Us", title:"Our Pets", week:"Week 3", words:[
+    ["care","to give someone or something what it needs to stay healthy and happy","I help care for our fish by feeding it."],
+    ["train","to teach a person or animal how to do something","We will train the puppy to sit."],
+    ["groom","to wash or brush an animal","We groom the dog so its fur stays soft."],
+    ["companion","a person or animal who keeps you company","My cat is my companion at home."],
+    ["popular","liked by lots of people","Pizza is a popular lunch at school."],
+  ]},
+  { id:"u1w4", unit:"Unit 1: Getting to Know Us", title:"Let's Be Friends", week:"Week 4", words:[
+    ["cooperate","to work together to get something done","We cooperate to clean up the classroom."],
+    ["relationship","the way you are connected to someone, like a friend or family","My cousin and I have a happy relationship."],
+    ["deliver","to bring something to the person it belongs to","The mail carrier will deliver a letter."],
+    ["chore","a small job you have to do","Making my bed is my morning chore."],
+    ["collect","to gather things together","I collect pretty shells at the beach."],
+  ]},
+  { id:"u1w5", unit:"Unit 1: Getting to Know Us", title:"Let's Move!", week:"Week 5", words:[
+    ["physical","about your body","Running and jumping are physical activities."],
+    ["exercise","moving your body to stay healthy and get stronger","We exercise at recess by playing tag."],
+    ["agree","to think the same thing as someone else","We all agree that ice cream is yummy."],
+    ["exhausted","very, very tired","After the long walk, I was exhausted."],
+    ["difficult","hard to do","Tying my shoes was difficult at first."],
+  ]},
+  { id:"u2w1", unit:"Unit 2: Our Community", title:"Jobs Around Town", week:"Week 1", words:[
+    ["community","a place and all the people who live there","Firefighters help keep our community safe."],
+    ["occupation","the job someone does","My aunt's occupation is nurse."],
+    ["equipment","the special things you need to do a job or activity","A doctor's equipment includes a stethoscope."],
+    ["fortunately","luckily","It rained, but fortunately we had umbrellas."],
+    ["astonishing","amazing or very surprising","The magician did an astonishing trick."],
+  ]},
+  { id:"u2w2", unit:"Unit 2: Our Community", title:"Buildings All Around", week:"Week 2", words:[
+    ["shelter","a building or place that keeps you safe","A tent is our shelter when we go camping."],
+    ["materials","the things used to make something else","Wood and nails are materials for a house."],
+    ["collapsed","fell down","The block tower collapsed when I bumped it."],
+    ["furious","very, very angry","The wolf was furious when the house stayed up."],
+    ["refused","said firmly that you will not do something","The cat refused to take a bath."],
+  ]},
+  { id:"u2w3", unit:"Unit 2: Our Community", title:"A Community in Nature", week:"Week 3", words:[
+    ["habitat","the place in nature where an animal lives","A pond is a frog's habitat."],
+    ["depend","to need someone or something to get what you need","Baby birds depend on their parents for food."],
+    ["hibernate","to sleep through the winter in a safe place","Bears hibernate in caves."],
+    ["tranquil","calm and peaceful","The lake was tranquil in the morning."],
+    ["tolerate","to put up with something you don't like","I can tolerate the noise until the music ends."],
+  ]},
+  // Meanings below are word for word from the school sheet (photo IMG_0215).
+  { id:"u2w4", unit:"Unit 2: Our Community", title:"Let's Help", week:"Week 4", thisWeek:true, words:[
+    ["admire","someone you approve of and like","I admire my teacher because she is kind."],
+    ["connections","links between two or more things","We found connections between the two stories."],
+    ["enjoy","like","I enjoy reading at bedtime."],
+    ["leadership","the ability to guide a group of people or the action of leading others","Our line leader showed good leadership on the field trip."],
+    ["rely","when you know you can trust or count on someone","I rely on my mom to help me with homework."],
+  ]},
+];
+
+/* Words whose meanings are too close to be fair wrong answers for each other. */
+const TOO_CLOSE = [["enjoy","admire"],["depend","rely"],["relationship","connections"],["physical","exercise"],["community","city"],["equipment","materials"]];
+
+const PLAYER = "";
+const PASS_MARK = 0.8;   // 4 out of 5 on the first try wins the secret word
+const MIX_SIZE = 10;
+
+/* The secret prize words: [word, sticker, how it is said] */
+const PRIZES = [["UNICORN","🦄","a unicorn"],["CROWN","👑","a crown"],["DIAMOND","💎","a diamond"],["TROPHY","🏆","a trophy"],["RAINBOW","🌈","a rainbow"],["STAR","⭐","a star"],["BOW","🎀","a bow"],["BUTTERFLY","🦋","a butterfly"],["KITTEN","🐱","a kitten"],["BUNNY","🐰","a bunny"],["DOLPHIN","🐬","a dolphin"],["TEDDY","🧸","a teddy"],["CUPCAKE","🧁","a cupcake"],["LOLLIPOP","🍭","a lollipop"],["DONUT","🍩","a donut"],["BERRY","🍓","a berry"],["BALLOON","🎈","a balloon"],["FLOWER","🌸","a flower"],["KITE","🪁","a kite"],["PAINTS","🎨","paints"],["FISH","🐟","a fish"],["WAND","🪄","a magic wand"],["YARN","🧶","some yarn"],["CONE","🍦","an ice cream cone"]];
+const CHEERS = ["You got it!","Yes!","Great job"+(PLAYER?", "+PLAYER:"")+"!","That's it!","Super!","Wow, you know this one!"];
+
+/* ---------- saved things (safe if the browser blocks storage) ---------- */
+const KEY = "secret-word-v1";
+let store = {prizes:{},best:{},known:{},sound:true,custom:[]};
+try{
+  const s = JSON.parse(localStorage.getItem(KEY)||"null");
+  if(s && typeof s==="object"){
+    ["prizes","best","known"].forEach(k=>{ if(s[k] && typeof s[k]==="object") store[k]=s[k]; });
+    if(typeof s.sound==="boolean") store.sound = s.sound;
+    if(Array.isArray(s.custom)) store.custom = s.custom.filter(l=>l && Array.isArray(l.words) && l.title);
+  }
+}catch(e){}
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify(store)); }catch(e){} }
+
+/* ---------- helpers ---------- */
+const app = document.getElementById("app");
+const esc = s => String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const shuffle = a => { a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const one = a => a[Math.floor(Math.random()*a.length)];
+const lists = () => WORD_LISTS.concat(store.custom);
+const findList = id => lists().find(l=>l.id===id);
+function allWords(){ const seen=new Set(),out=[]; lists().forEach(l=>l.words.forEach(w=>{const k=w[0].toLowerCase(); if(!seen.has(k)){seen.add(k);out.push(w);}})); return out; }
+const tooClose = (a,b) => TOO_CLOSE.some(p=>(p[0]===a&&p[1]===b)||(p[0]===b&&p[1]===a));
+const needed = n => Math.ceil(n*PASS_MARK);
+function starsFor(right,n){ if(!n) return 0; if(right===n) return 3; if(right>=needed(n)) return 2; return right/n>=.5?1:0; }
+const starHTML = n => '<span class="stars" aria-label="'+n+' of 3 stars">'+"★".repeat(n)+'<i>'+"★".repeat(3-n)+'</i></span>';
+const wordRe = w => new RegExp("\\b"+w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","i");
+const hasSentence = q => q.sentence && wordRe(q.word).test(q.sentence);
+const blanked = q => esc(q.sentence.replace(wordRe(q.word),"\u0000")).replace("\u0000",'<span class="blank"></span>');
+const marked = q => esc(q.sentence.replace(wordRe(q.word),"\u0000")).replace("\u0000",'<mark>'+esc((q.sentence.match(wordRe(q.word))||[q.word])[0])+'</mark>');
+const titleTiles = w => '<span class="tiles" aria-hidden="true">'+[...w].map((l,i)=>`<span class="tile c${i%6}">${l}</span>`).join("")+'</span>';
+function secretHTML(word,shown,big){
+  return `<div class="tiles ${big?"big":""}" id="secretTiles" role="img" aria-label="${shown.size} letters of the secret word found">`+
+    [...word].map((l,i)=>shown.has(i)?`<span class="tile c${i%6}">${l}</span>`:`<span class="tile hide">?</span>`).join("")+`</div>`;
+}
+
+/* ---------- sound and reading aloud ---------- */
+let actx=null;
+function tone(f,at,dur,type,vol){
+  if(!store.sound) return;
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==="suspended") actx.resume();
+    const t=actx.currentTime+at, o=actx.createOscillator(), g=actx.createGain();
+    o.type=type||"triangle"; o.frequency.value=f;
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol||.18,t+.015); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+    o.connect(g).connect(actx.destination); o.start(t); o.stop(t+dur+.02);
+  }catch(e){}
+}
+const sfx = {
+  right(){ [523,659,784].forEach((f,i)=>tone(f,i*.09,.22)); },
+  wrong(){ tone(247,0,.16,"sine",.16); tone(208,.14,.24,"sine",.16); },
+  win(){ [523,659,784,1047,784,1047,1319].forEach((f,i)=>tone(f,i*.11,.26)); },
+  tap(){ tone(660,0,.07,"sine",.09); }
+};
+const synth = window.speechSynthesis || null;
+let voice=null;
+function pickVoice(){
+  if(!synth) return;
+  const v=synth.getVoices()||[];
+  voice = v.find(x=>/^en[-_]US/i.test(x.lang)&&/samantha/i.test(x.name)) || v.find(x=>/^en[-_]US/i.test(x.lang)&&x.localService) || v.find(x=>/^en/i.test(x.lang)) || null;
+}
+if(synth){ pickVoice(); try{ synth.addEventListener("voiceschanged",pickVoice); }catch(e){} }
+function clearReading(){ document.querySelectorAll(".answer.reading").forEach(b=>b.classList.remove("reading")); }
+function say(parts){
+  if(!synth) return;
+  try{
+    synth.cancel(); clearReading();
+    if(!store.sound) return;
+    (Array.isArray(parts)?parts:[parts]).forEach(p=>{
+      const o = typeof p==="string"?{text:p}:p;
+      const u=new SpeechSynthesisUtterance(o.text);
+      u.lang="en-US"; u.rate=.86; u.pitch=1.08; if(voice) u.voice=voice;
+      if(o.start) u.onstart=o.start;
+      if(o.end) u.onend=o.end;
+      synth.speak(u);
+    });
+  }catch(e){}
+}
+const soundBtn = () => `<button class="chunk icon" data-act="sound" aria-label="${store.sound?"Turn sound off":"Turn sound on"}">${store.sound?"🔊":"🔇"}</button>`;
+const homeBtn = () => `<button class="chunk icon" data-act="home" aria-label="Go home">🏠</button>`;
+
+/* ---------- home ---------- */
+function showHome(){
+  round=null; if(synth) synth.cancel();
+  const week = WORD_LISTS.find(l=>l.thisWeek) || WORD_LISTS[WORD_LISTS.length-1];
+  const groups = {};
+  WORD_LISTS.forEach(l=>{(groups[l.unit]=groups[l.unit]||[]).push(l);});
+  const won = PRIZES.filter(p=>store.prizes[p[0]]);
+  const card = l => `<button class="chunk week" data-act="start" data-id="${esc(l.id)}">${l.week?`<b>${esc(l.week)}</b>`:""}<span class="t">${esc(l.title)}</span>${starHTML(store.best[l.id]||0)}</button>`;
+  app.innerHTML = `<main class="screen">
+    <header class="hero">${PLAYER?`<div class="owner">${esc(PLAYER)}'s</div>`:""}<h1 class="brand" aria-label="Secret Word">${titleTiles("SECRET")}${titleTiles("WORD")}</h1><p>Read the clue. Pick the word. Find the secret word and win it!</p></header>
+    <button class="chunk tonight" data-act="start" data-id="${esc(week.id)}">
+      <span class="tag">This week's words</span><span class="name">${esc(week.title)}</span>
+      <span class="list">${week.words.map(w=>esc(w[0])).join(", ")}</span><span class="go">Play!</span>
+    </button>
+    <button class="chunk bookbar" data-act="book"><span>My Word Book<small>${won.length} of ${PRIZES.length} secret words won</small></span><span class="row">${won.slice(-6).map(p=>p[1]).join("")}</span></button>
+    ${Object.keys(groups).map(u=>`<section class="unit"><h2>${esc(u)}</h2><div class="weeks">${groups[u].map(card).join("")}</div></section>`).join("")}
+    ${store.custom.length?`<section class="unit"><h2>Added words</h2><div class="weeks">${store.custom.map(card).join("")}</div></section>`:""}
+    <section class="unit"><h2>All the words</h2><div class="weeks"><button class="chunk week" data-act="start" data-id="mix"><b>${MIX_SIZE} surprise words</b><span class="t">Mix them up</span>${starHTML(store.best.mix||0)}</button></div></section>
+    <footer class="foot"><button class="linkish" data-act="grownups">Grown-ups: add more words</button></footer>
+  </main>`;
+  window.scrollTo(0,0);
+}
+
+/* ---------- playing a round ---------- */
+let round=null;
+function makeChoices(word,pool){
+  const key=word[0].toLowerCase();
+  const usable = w => w[0].toLowerCase()!==key && !tooClose(w[0].toLowerCase(),key);
+  const picks=[]; const seen=new Set([key]);
+  const take = from => shuffle(from).forEach(w=>{const k=w[0].toLowerCase(); if(picks.length<3 && usable(w) && !seen.has(k)){seen.add(k);picks.push(w[0]);}});
+  take(pool); take(allWords());
+  return shuffle(picks.concat(word[0]));
+}
+function newSecret(){
+  const fresh=PRIZES.filter(p=>!store.prizes[p[0]]);
+  return one(fresh.length?fresh:PRIZES);
+}
+function startRound(id,keepSecret){
+  let list,words,pool;
+  if(id==="mix"){ pool=allWords(); words=shuffle(pool).slice(0,MIX_SIZE); list={id:"mix",title:"Mix them up"}; }
+  else{ list=findList(id); if(!list) return showHome(); pool=list.words; words=shuffle(pool); }
+  round={list,i:0,right:0,secret:keepSecret||newSecret(),shown:new Set(),done:false,
+    qs:words.map(w=>({word:w[0],meaning:w[1],sentence:w[2]||"",choices:makeChoices(w,pool),missed:false}))};
+  showQuestion();
+}
+/* Each right answer turns over more letters. The last letter stays hidden until she wins. */
+function revealLetters(){
+  const word=round.secret[0], len=word.length, target=Math.min(len-1,Math.ceil(round.right/round.qs.length*len));
+  const hidden=shuffle([...Array(len).keys()].filter(i=>!round.shown.has(i)));
+  const fresh=[];
+  while(round.shown.size<target && hidden.length){ const i=hidden.pop(); round.shown.add(i); fresh.push(i); }
+  const box=document.getElementById("secretTiles"); if(!box) return;
+  fresh.forEach(i=>{ const t=box.children[i]; t.className="tile on c"+(i%6); t.textContent=word[i]; });
+}
+function showQuestion(){
+  const q=round.qs[round.i]; round.done=false;
+  app.innerHTML = `<main class="screen">
+    <div class="topbar">${homeBtn()}<div class="count">Word ${round.i+1} of ${round.qs.length}</div>${soundBtn()}</div>
+    <div class="secret"><span class="lab">Secret word</span>${secretHTML(round.secret[0],round.shown)}</div>
+    <section class="clue">
+      <div class="cluetop"><span class="ask">Which word means...</span><button class="chunk small" data-act="read" ${synth?"":"hidden"}>🔊 Read it to me</button></div>
+      <p class="cluetext">${esc(q.meaning)}</p>
+    </section>
+    <div class="answers">${q.choices.map((c,i)=>`<button class="chunk answer" data-act="pick" data-i="${i}">${esc(c)}</button>`).join("")}</div>
+    <div class="note" id="note"><button class="chunk small solo" data-act="hint">💡 Give me a hint</button></div>
+  </main>`;
+  window.scrollTo(0,0);
+  say("Which word means: "+q.meaning+"?");
+}
+function hintHTML(q,lead){
+  const body = hasSentence(q) ? blanked(q) : 'It starts with the letter <mark>'+esc(q.word[0].toUpperCase())+'</mark>.';
+  return `<div class="say no"><strong>${esc(lead)}</strong>${body}</div>`;
+}
+function hintSpeech(q){ return hasSentence(q) ? q.sentence.replace(wordRe(q.word),"blank") : "It starts with the letter "+q.word[0]; }
+function pick(i){
+  const q=round.qs[round.i]; if(round.done) return;
+  const btns=[...app.querySelectorAll(".answer")], btn=btns[i], chosen=q.choices[i];
+  if(!btn || btn.disabled) return;
+  const note=document.getElementById("note");
+  if(chosen===q.word){
+    round.done=true;
+    if(!q.missed){ round.right++; store.known[q.word.toLowerCase()]=true; save(); revealLetters(); }
+    btns.forEach(b=>{b.disabled=true; if(b!==btn) b.classList.add("faded");});
+    btn.classList.add("right"); sfx.right();
+    const cheer = q.missed ? "There it is!" : one(CHEERS);
+    const last = round.i===round.qs.length-1;
+    note.innerHTML = `<div class="say ok"><strong>${esc(cheer)}</strong>${q.sentence?marked(q):esc(q.word)+" means "+esc(q.meaning)}</div><button class="chunk primary" data-act="next" id="next">${last?"See my score":"Next word"}</button>`;
+    document.getElementById("next").focus({preventScroll:true});
+    say([cheer, q.word+". "+(q.sentence||"")]);
+    note.scrollIntoView({block:"nearest",behavior:"smooth"});
+  }else{
+    q.missed=true;
+    btn.classList.add("wrong"); btn.disabled=true; sfx.wrong();
+    note.innerHTML = hintHTML(q,"Not that one. Try again!");
+    say("Not that one. Try again! "+hintSpeech(q));
+    note.scrollIntoView({block:"nearest",behavior:"smooth"});
+  }
+}
+function next(){
+  round.i++;
+  if(round.i<round.qs.length) showQuestion(); else showResult();
+}
+function readAloud(){
+  const q=round.qs[round.i]; const btns=[...app.querySelectorAll(".answer")];
+  const parts=[{text:"Which word means: "+q.meaning+"?"}];
+  if(!round.done) q.choices.forEach((c,i)=>{ if(!btns[i].disabled) parts.push({text:c,start(){clearReading();btns[i].classList.add("reading");},end(){btns[i].classList.remove("reading");}}); });
+  say(parts);
+}
+
+/* ---------- score and prize ---------- */
+function showResult(){
+  const n=round.qs.length, right=round.right, need=needed(n), stars=starsFor(right,n), id=round.list.id;
+  const won=right>=need, perfect=right===n, missed=round.qs.filter(q=>q.missed);
+  round.won=won; round.revealed=false;
+  store.best[id]=Math.max(store.best[id]||0,stars);
+  if(won){
+    const k=round.secret[0], had=store.prizes[k]||{n:0,gold:false};
+    store.prizes[k]={n:had.n+1,gold:had.gold||perfect};
+  }
+  save();
+  const title = perfect?"Perfect!":won?"You did it!":"So close!";
+  const sub = won ? `${right} out of ${n} right on the first try. You found the secret word!`
+                  : `${right} out of ${n} right on the first try. Get ${need} to find the secret word. You can do it!`;
+  app.innerHTML = `<main class="screen result">
+    <div class="topbar">${homeBtn()}${soundBtn()}</div>
+    <h2>${title}</h2>
+    <div class="bigstars">${starHTML(stars)}</div>
+    <p class="sub" id="sub">${sub}</p>
+    ${secretHTML(round.secret[0],round.shown,true)}
+    <div id="sticker"></div>
+    <div class="actions" id="actions">
+      ${won?`<button class="chunk primary" data-act="reveal" id="reveal">Show my secret word!</button>`:`<button class="chunk primary" data-act="again">Try again</button><button class="chunk" data-act="home">All my words</button>`}
+    </div>
+    ${missed.length?`<section class="practice"><h3>Words to practice</h3>${missed.map(q=>`<p><b>${esc(q.word)}</b>: ${esc(q.meaning)}</p>`).join("")}</section>`:""}
+  </main>`;
+  window.scrollTo(0,0);
+  if(won){ tone(784,0,.2); tone(988,.14,.3); say(title+" You found the secret word!"); }
+  else say("So close! You got "+right+" out of "+n+". Get "+need+" to find the secret word. You can do it!");
+}
+function reveal(){
+  if(!round || round.revealed) return;
+  round.revealed=true;
+  const [word,emoji,name]=round.secret, perfect=round.right===round.qs.length;
+  const box=document.getElementById("secretTiles");
+  const quick=window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const hidden=[...Array(word.length).keys()].filter(i=>!round.shown.has(i));
+  hidden.forEach((i,step)=>{
+    const flip=()=>{ if(!box.isConnected) return; const t=box.children[i]; t.className="tile on c"+(i%6); t.textContent=word[i]; tone(523+step*90,0,.14); };
+    quick?flip():setTimeout(flip,step*220);
+  });
+  box.setAttribute("aria-label","The secret word is "+word);
+  document.getElementById("actions").innerHTML="";
+  const finish=()=>{
+    if(!document.getElementById("sticker")) return;
+    document.getElementById("sticker").innerHTML=`<span class="sticker ${perfect?"gold":""}" aria-hidden="true">${emoji}</span>`;
+    const msg=word+"! You won "+name+"!"+(perfect?" Every word right, so your sticker is gold!":"");
+    document.getElementById("sub").textContent=msg;
+    document.getElementById("actions").innerHTML=`<button class="chunk primary" data-act="book">See my Word Book</button><button class="chunk" data-act="again">Play again</button><button class="chunk" data-act="home">All my words</button>`;
+    sfx.win(); say(msg); confetti();
+  };
+  quick?finish():setTimeout(finish,hidden.length*220+250);
+}
+function confetti(){
+  if(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const c=document.createElement("canvas"); c.className="party"; document.body.appendChild(c);
+  const w=c.width=innerWidth, h=c.height=innerHeight, x=c.getContext("2d");
+  if(!x){ c.remove(); return; }
+  const cols=["#FF9AD0","#6FE0EA","#C3EE62","#C9AEFF","#FFD84D","#FFB877"];
+  const letters="ABCDEFGHIJKLMNOPRSTUW";
+  const bits=Array.from({length:90},()=>({x:w/2+(Math.random()-.5)*200,y:h*.45,vx:(Math.random()-.5)*11,vy:-Math.random()*13-4,s:18+Math.random()*16,r:(Math.random()-.5)*2,l:one([...letters]),c:one(cols)}));
+  const start=performance.now();
+  (function frame(t){
+    x.clearRect(0,0,w,h);
+    bits.forEach(b=>{b.x+=b.vx;b.y+=b.vy;b.vy+=.28;b.r+=.05;x.save();x.translate(b.x,b.y);x.rotate(b.r);x.fillStyle=b.c;x.font="bold "+b.s+"px 'Lilita One',sans-serif";x.textAlign="center";x.fillText(b.l,0,0);x.restore();});
+    if(t-start<3200) requestAnimationFrame(frame); else c.remove();
+  })(start);
+}
+
+/* ---------- Word Book: stickers won and words known ---------- */
+function showBook(){
+  if(synth) synth.cancel();
+  const have=PRIZES.filter(p=>store.prizes[p[0]]), not=PRIZES.filter(p=>!store.prizes[p[0]]);
+  const all=allWords(), known=all.filter(w=>store.known[w[0].toLowerCase()]);
+  const slot=p=>{const s=store.prizes[p[0]]; return `<div class="slot ${s.gold?"gold":""}"><span class="face" aria-hidden="true">${p[1]}</span>${esc(p[0])}${s.n>1?` x${s.n}`:""}</div>`;};
+  app.innerHTML = `<main class="screen">
+    <div class="topbar">${homeBtn()}${soundBtn()}</div>
+    <header class="title"><h2>My Word Book</h2></header>
+    <section class="page">
+      <h3>Secret words I won: ${have.length} of ${PRIZES.length}</h3>
+      <p class="help">${have.length?"":"No secret words yet. Play a list to find your first one! "}Get every word right on the first try to win a gold sticker.</p>
+      <div class="slots">${have.map(slot).join("")}${not.map(()=>`<div class="slot empty"><span class="face">?</span></div>`).join("")}</div>
+    </section>
+    <section class="page">
+      <h3>Words I know: ${known.length} of ${all.length}</h3>
+      ${known.length?`<p class="help">Tap a word to hear what it means.</p><div class="chips">${known.map(w=>`<button data-act="hear" data-w="${esc(w[0])}">${esc(w[0])}</button>`).join("")}</div>`:`<p class="help">Words you get right on the first try will show up here.</p>`}
+    </section>
+  </main>`;
+  window.scrollTo(0,0);
+}
+
+/* ---------- grown-ups: add words ---------- */
+function parseWords(text){
+  const words=[],bad=[];
+  text.split(/\r?\n/).forEach((line,i)=>{
+    const t=line.trim(); if(!t) return;
+    const parts=t.split(/\t+|\s+[-–—]\s+|\s*:\s+/).map(s=>s.trim()).filter(Boolean);
+    if(parts.length<2) bad.push(i+1);
+    else words.push([parts[0],parts[1],parts.slice(2).join(" - ")]);
+  });
+  return {words,bad};
+}
+function showGrownups(message){
+  if(synth) synth.cancel();
+  app.innerHTML = `<main class="screen">
+    <div class="topbar">${homeBtn()}</div>
+    <header class="title"><h2>Add more words</h2></header>
+    <form class="panel" id="addform" novalidate>
+      <div><label for="listname">Name of this list</label><input id="listname" autocomplete="off" placeholder="Unit 3, Week 1"></div>
+      <div><label for="wordlines">Words, one on each line</label>
+        <textarea id="wordlines" autocapitalize="off" autocorrect="off" placeholder="brave - not afraid to do something hard - The brave firefighter saved the cat.&#10;gentle - kind and careful - Be gentle with the puppy."></textarea>
+        <small>Write the word, a dash, and what it means. A second dash and an example sentence are optional. The sentence is used for hints.</small></div>
+      <p id="formmsg" class="${message?"okmsg":""}">${message?esc(message):""}</p>
+      <div class="actions" style="justify-content:flex-start"><button class="chunk primary" type="submit">Save words</button></div>
+      <small>Words added here stay on this device and this browser only.</small>
+    </form>
+    ${store.custom.length?`<section class="panel"><h3>Words you added</h3>${store.custom.map(l=>`<div class="rowline"><span><b>${esc(l.title)}</b>: ${l.words.map(w=>esc(w[0])).join(", ")}</span><button class="chunk small" data-act="removelist" data-id="${esc(l.id)}">Remove</button></div>`).join("")}</section>`:""}
+    <section class="panel"><h3>Word Book</h3><div class="rowline"><span>Used it for testing and want a clean book?</span><button class="chunk small" data-act="resetbook">Empty the book</button></div></section>
+  </main>`;
+  window.scrollTo(0,0);
+  document.getElementById("addform").addEventListener("submit",e=>{
+    e.preventDefault();
+    const title=document.getElementById("listname").value.trim();
+    const {words,bad}=parseWords(document.getElementById("wordlines").value);
+    const msg=document.getElementById("formmsg"); msg.className="err";
+    if(!title){ msg.textContent="Give this list a name first."; return; }
+    if(bad.length){ msg.textContent="Line "+bad.join(", ")+" needs a dash between the word and what it means."; return; }
+    if(!words.length){ msg.textContent="Type at least one word and what it means."; return; }
+    store.custom.push({id:"c"+Date.now(),title,words});
+    save();
+    showGrownups(words.length+(words.length===1?" word":" words")+" saved. Find them on the home screen under Added words.");
+  });
+}
+function twoTap(btn,label,done){
+  if(btn.dataset.armed){ done(); return; }
+  btn.dataset.armed="1"; const was=btn.textContent; btn.textContent=label;
+  setTimeout(()=>{ if(btn.isConnected){ delete btn.dataset.armed; btn.textContent=was; } },4000);
+}
+
+/* ---------- taps and keys ---------- */
+const ACTIONS = {
+  start:d=>startRound(d.id),
+  pick:d=>pick(+d.i),
+  next:()=>next(),
+  hint(){ const q=round.qs[round.i]; document.getElementById("note").innerHTML=hintHTML(q,"Here's a hint"); say(hintSpeech(q)); },
+  read:()=>readAloud(),
+  reveal:()=>reveal(),
+  again:()=>startRound(round.list.id, round.won?null:round.secret),
+  home:()=>showHome(),
+  book:()=>showBook(),
+  grownups:()=>showGrownups(),
+  hear(d){ const w=allWords().find(x=>x[0]===d.w); if(w) say(w[0]+". "+w[1]); },
+  sound(d,b){
+    store.sound=!store.sound; save();
+    b.textContent=store.sound?"🔊":"🔇"; b.setAttribute("aria-label",store.sound?"Turn sound off":"Turn sound on");
+    if(store.sound) sfx.tap(); else if(synth) synth.cancel();
+  },
+  removelist(d,b){ twoTap(b,"Tap again to remove",()=>{ store.custom=store.custom.filter(l=>l.id!==d.id); delete store.best[d.id]; save(); showGrownups("List removed."); }); },
+  resetbook(d,b){ twoTap(b,"Tap again to empty",()=>{ store.prizes={}; store.best={}; store.known={}; save(); showGrownups("The Word Book is empty and the stars are cleared."); }); },
+};
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-act]"); if(!b||b.disabled) return;
+  document.querySelectorAll("canvas.party").forEach(c=>c.remove());
+  const fn=ACTIONS[b.dataset.act]; if(fn) fn(b.dataset,b);
+});
+document.addEventListener("keydown",e=>{
+  if(!round||e.metaKey||e.ctrlKey||e.altKey) return;
+  if(/^[1-4]$/.test(e.key) && app.querySelector(".answer")) pick(+e.key-1);
+});
+
+showHome();
+</script>
