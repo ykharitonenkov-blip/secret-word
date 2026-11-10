@@ -250,11 +250,66 @@ const WORD_LISTS = [
   ]},
 ];
 
+/* More example sentences, so the sentences can't be memorized. The game goes through all of a word's
+   sentences (the one in WORD_LISTS plus these) before it repeats any. Each sentence must use the exact word. */
+const MORE_SENTENCES = {
+  learn:["In first grade, we learn how to read.","I want to learn how to swim.","Puppies can learn new tricks.","My brother will learn the rules of the game."],
+  subjects:["Reading and art are my best subjects.","We study many subjects at school.","Science and math are two school subjects.","Which subjects do you like to study?"],
+  common:["Rain is common in the spring.","Sneakers are very common at my school.","Red is a common color for a car.","Sparrows are common birds in our town."],
+  object:["A ball is a round object.","Please put that object back on the shelf.","What is that shiny object on the floor?","A spoon is a small object in the kitchen."],
+  recognize:["Did you recognize me in my costume?","My dog will recognize me when I come home.","Can you recognize your own coat on the hook?","I did not recognize my teacher with her new haircut."],
+  city:["New York is a very big city.","Tall buildings fill the city.","The city has many taxis and tall towers.","Many people ride the subway in the city."],
+  country:["The farmer lives out in the country.","We saw red barns and cows in the country.","It is very quiet at night in the country.","Sheep eat grass on farms in the country."],
+  bored:["With no toys to play with, I was bored.","The long car ride made me bored.","My sister got bored and took a nap.","He yawned because he was bored."],
+  feast:["We ate a big feast on Thanksgiving.","The king and queen had a feast at the castle.","Mom cooked all day to make a holiday feast.","After the feast, we were all very full."],
+  scurried:["The squirrel scurried up the tree.","The little crab scurried across the sand.","The ants scurried into their hill.","The kitten scurried behind the chair."],
+  care:["Nurses care for sick people at the hospital.","I will care for the plants while you are away.","We care for our baby brother by feeding him.","It is my job to care for the hamster every day."],
+  train:["The coach will train the team to run fast.","It takes time to train a dog to fetch.","They train horses to jump over fences.","Can you train a parrot to talk?"],
+  groom:["Horses need someone to groom their long manes.","We groom our cat with a soft brush.","Dad will groom the dog in the bathtub.","Cats lick their fur to groom themselves."],
+  companion:["Our old dog is Grandpa's best companion.","A companion keeps you from being lonely.","My teddy bear is my bedtime companion.","The old sailor's cat was his only companion."],
+  popular:["Soccer is a popular game at recess.","That new song is very popular.","Chocolate is the most popular flavor at the shop.","Everyone wants to play with that popular toy."],
+  cooperate:["Team players cooperate to win the game.","The ants cooperate to carry the big crumb.","If we cooperate, we will finish the puzzle fast.","My brother and I cooperate to set the table."],
+  relationship:["Grandma and I have a very close relationship.","A good relationship takes kindness and trust.","The two friends have a strong relationship.","My relationship with my sister got better when we shared toys."],
+  deliver:["The truck will deliver the new couch today.","Pizza drivers deliver hot food to your door.","Can you deliver this note to the office?","Farmers deliver fresh milk to the store."],
+  chore:["Feeding the dog is my daily chore.","Taking out the trash is a smelly chore.","Washing dishes is my least favorite chore.","I finished my chore and then went out to play."],
+  collect:["My friend likes to collect stickers.","We collect leaves for our art project.","Bees collect nectar from flowers.","I will collect the papers from every desk."],
+  physical:["Swimming is a good physical activity.","Doctors check your physical health.","Dancing is a fun physical activity.","Climbing the rope takes physical strength."],
+  exercise:["My mom likes to exercise at the gym.","Dogs need to exercise every day.","Riding a bike is good exercise.","I exercise by jumping rope after school."],
+  agree:["My friends and I agree on which game to play.","Do you agree that dogs are fun?","Mom and Dad agree that bedtime is at eight.","We did not agree on what to watch."],
+  exhausted:["The runners were exhausted after the race.","I was so exhausted that I fell asleep on the couch.","We came home exhausted from the long hike.","Dad looked exhausted after working all night."],
+  difficult:["This puzzle is too difficult for me.","The last math problem was very difficult.","It is difficult to carry this heavy box.","Riding a bike was difficult until I practiced."],
+  community:["Our community has a park and a library.","Everyone in our community came to the parade.","We planted trees to help our community.","The people in my community are friendly."],
+  occupation:["Teaching is my mother's occupation.","What occupation do you want when you grow up?","Farming is a hard occupation.","His occupation is bus driver."],
+  equipment:["A firefighter's equipment includes a helmet and a hose.","Bring your soccer equipment to practice.","The hospital has new equipment for helping sick people.","Campers pack their equipment into the car."],
+  fortunately:["I lost my hat, but fortunately I found it.","The dog ran away, but fortunately he came back.","We missed the bus, but fortunately Mom drove us.","I fell down, but fortunately I did not get hurt."],
+  astonishing:["The fireworks show was astonishing.","It was astonishing to see a whale jump.","The circus acrobat made an astonishing jump.","The tall waterfall was astonishing to see."],
+  shelter:["The birds found shelter from the rain under the roof.","A cave can be a shelter for animals.","We built a shelter out of branches.","During the storm, our house was a safe shelter."],
+  materials:["Bricks and cement are building materials.","Paper and glue are our art materials.","Birds use twigs and grass as materials for a nest.","The store sells materials for building a fence."],
+  collapsed:["The old bridge collapsed in the storm.","The sand castle collapsed when the wave hit it.","Our tent collapsed in the wind.","The shelf collapsed under the heavy books."],
+  furious:["Mom was furious when I spilled paint on the rug.","The coach looked furious after the bad call.","He was furious that someone broke his toy.","The king was furious and stomped his feet."],
+  refused:["The baby refused to eat her peas.","My brother refused to share his toys.","The donkey refused to walk up the hill.","I refused to go on the scary ride."],
+  habitat:["The ocean is a whale's habitat.","The forest is a habitat for deer and owls.","A desert is a dry habitat for lizards.","Polar bears live in a cold habitat."],
+  depend:["Plants depend on the sun to grow.","Puppies depend on their mothers for milk.","We depend on the bus to get to school.","Farmers depend on rain for their crops."],
+  hibernate:["Some frogs hibernate in the mud all winter.","Chipmunks hibernate when it gets cold.","Many bats hibernate in dark caves.","Bears eat a lot before they hibernate."],
+  tranquil:["The quiet garden felt tranquil.","The sea was tranquil with no waves.","We sat in a tranquil spot by the river.","The forest was tranquil after the snow fell."],
+  tolerate:["Cactus plants can tolerate very hot days.","I can tolerate the cold for a little while.","My cat will tolerate a bath, but she does not like it.","I cannot tolerate loud noises when I am trying to sleep."],
+  admire:["I admire my big sister because she is brave.","Many kids admire the firefighters in our town.","We admire people who help others.","I admire my coach for working so hard."],
+  connections:["The teacher drew lines to show connections between the words.","I see connections between this book and my life.","Bridges make connections between two towns.","Can you find connections between the two pictures?"],
+  enjoy:["We enjoy playing at the beach.","My family will enjoy the movie tonight.","Cats enjoy sleeping in the sun.","I enjoy drawing with my new markers."],
+  leadership:["The team won because of the captain's leadership.","The class president showed great leadership.","With her leadership, our club raised money for the animal shelter.","The principal's leadership helps our school."],
+  rely:["You can rely on me to feed the cat.","Dogs rely on people to feed them.","My friends rely on me to keep a secret.","We rely on the crossing guard to keep us safe."],
+  locate:["Can you locate the library on this map?","I could not locate my other shoe.","Help me locate my lost kitten.","We used a compass to locate the trail."],
+  route:["The bus takes the same route every morning.","Dad picked a new route to avoid the traffic.","This route goes over the bridge and past the lake.","Follow the route on the map to find the treasure."],
+  height:["The nurse wrote down my height and weight.","You must be a certain height to go on this ride.","Dad marked my height on the wall.","A giraffe's great height helps it reach leaves."],
+  model:["We made a model of the solar system.","My brother built a model of a plane.","The little house is a model of our school.","This toy ship is a model of a real one."],
+  separate:["Please separate the forks from the spoons.","We separate paper from plastic to recycle it.","A fence will separate the cows from the horses.","The twins sit at separate tables."],
+};
+
 /* Words whose meanings are too close to be fair wrong answers for each other. */
 const TOO_CLOSE = [["enjoy","admire"],["depend","rely"],["relationship","connections"],["physical","exercise"],["community","city"],["equipment","materials"]];
 
 /* Sentence Puzzle: wrong answers that would also make sense in this word's sentence, so they are never offered.
-   Checked by hand for all 50 sentences. Choices come from the word's own week. */
+   Checked by hand for all 250 sentences (one word, several sentences: a wrong answer listed here is left out for all of them). Choices come from the word's own week. */
 const ALSO_FITS = {learn:["recognize"],city:["country"],deliver:["collect"],collect:["deliver"],physical:["difficult","exercise"],exhausted:["difficult"],difficult:["exhausted"],community:["equipment"],equipment:["occupation"],materials:["shelter"],collapsed:["refused"],furious:["collapsed"],admire:["enjoy"],enjoy:["admire"],leadership:["connections"]};
 const SENTENCE_EXTRA = {physical:["hibernate"]}; // this week has too few fair wrong answers left
 
@@ -268,11 +323,11 @@ const CHEERS = ["You got it!","Yes!","Great job"+(PLAYER?", "+PLAYER:"")+"!","Th
 
 /* ---------- saved things (safe if the browser blocks storage) ---------- */
 const KEY = "secret-word-v1";
-let store = {prizes:{},best:{},known:{},sound:true,custom:[],mode:"meaning"};
+let store = {prizes:{},best:{},known:{},sentencesSeen:{},sound:true,custom:[],mode:"meaning"};
 try{
   const s = JSON.parse(localStorage.getItem(KEY)||"null");
   if(s && typeof s==="object"){
-    ["prizes","best","known"].forEach(k=>{ if(s[k] && typeof s[k]==="object") store[k]=s[k]; });
+    ["prizes","best","known","sentencesSeen"].forEach(k=>{ if(s[k] && typeof s[k]==="object") store[k]=s[k]; });
     if(typeof s.sound==="boolean") store.sound = s.sound;
     if(s.mode==="sentence") store.mode = s.mode;
     if(Array.isArray(s.custom)) store.custom = s.custom.filter(l=>l && Array.isArray(l.words) && l.title);
@@ -295,6 +350,17 @@ const starHTML = n => '<span class="stars" aria-label="'+n+' of 3 stars">'+"★"
 const wordRe = w => new RegExp("\\b"+w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","i");
 const hasSentence = q => q.sentence && wordRe(q.word).test(q.sentence);
 const wordFits = w => !!w[2] && wordRe(w[0]).test(w[2]);
+/* Picks a sentence she hasn't had yet. Once all are used it starts over, never repeating the last one back to back. */
+function pickSentence(w){
+  const k=w[0].toLowerCase(), all=[w[2]].concat(MORE_SENTENCES[k]||[]).filter(s=>s&&wordRe(w[0]).test(s));
+  if(all.length<2) return w[2]||"";
+  const seen=store.sentencesSeen[k]||[], last=seen[seen.length-1];
+  let fresh=all.filter(s=>!seen.includes(s));
+  if(!fresh.length){ fresh=all.filter(s=>s!==last); store.sentencesSeen[k]=[]; }
+  const s=one(fresh);
+  store.sentencesSeen[k]=(store.sentencesSeen[k]||[]).concat(s);
+  return s;
+}
 const bestKey = id => store.mode==="sentence" ? id+":s" : id;
 const speakBlank = q => q.sentence.replace(wordRe(q.word),"blank");
 const blanked = q => esc(q.sentence.replace(wordRe(q.word),"\u0000")).replace("\u0000",'<span class="blank"></span>');
@@ -405,7 +471,7 @@ function startRound(id,keepSecret){
   else{ list=findList(id); if(!list) return showHome(); pool=list.words; words=shuffle(pool.filter(ok)); }
   if(!words.length){ homeMsg="This list has no example sentences yet, so play it in Word Meanings."; return showHome(); }
   round={list,mode,i:0,right:0,secret:keepSecret||newSecret(),shown:new Set(),done:false,
-    qs:words.map(w=>({word:w[0],meaning:w[1],sentence:w[2]||"",choices:makeChoices(w,pool,mode),missed:false}))};
+    qs:words.map(w=>({word:w[0],meaning:w[1],sentence:pickSentence(w),choices:makeChoices(w,pool,mode),missed:false}))};
   showQuestion();
 }
 /* Each right answer turns over more letters. The last letter stays hidden until she wins. */
